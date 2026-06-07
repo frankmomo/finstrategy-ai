@@ -1,0 +1,68 @@
+services:
+  - type: web
+    name: finstrategy-api
+    runtime: docker
+    dockerfilePath: ./apps/api/Dockerfile
+    dockerContext: .
+    plan: starter
+    preDeployCommand: python scripts/migrate.py
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finstrategy-db
+          property: connectionString
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: FMP_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_BASE_URL
+        value: https://api.deepseek.com
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: CORS_ORIGINS
+        sync: false
+      - key: TICKERS
+        value: SPY,MSFT,TSLA,NVDA,AAPL,META,GOOGL,NFLX,AMZN
+      - key: POLYGON_WS_URL
+        value: wss://socket.polygon.io/stocks
+      - key: POLYGON_INGESTION_MODE
+        value: rest_poll
+      - key: MARKET_DATA_TIMEFRAME
+        value: 1d
+      - key: POLYGON_REST_POLL_SECONDS
+        value: "30"
+
+  - type: worker
+    name: finstrategy-worker
+    runtime: docker
+    dockerfilePath: ./apps/worker/Dockerfile
+    dockerContext: .
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: finstrategy-db
+          property: connectionString
+      - key: POLYGON_API_KEY
+        sync: false
+      - key: TICKERS
+        value: SPY,MSFT,TSLA,NVDA,AAPL,META,GOOGL,NFLX,AMZN
+      - key: POLYGON_WS_URL
+        value: wss://socket.polygon.io/stocks
+      - key: POLYGON_INGESTION_MODE
+        value: rest_poll
+      - key: MARKET_DATA_TIMEFRAME
+        value: 1d
+      - key: POLYGON_REST_POLL_SECONDS
+        value: "30"
+
+databases:
+  - name: finstrategy-db
+    databaseName: finstrategy
+    plan: basic-256mb
+    postgresMajorVersion: "16"

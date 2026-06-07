@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist.zip
+.venv/
+__pycache__/
+*.py[cod]
+*.log
+*.db
+strategy-test.png
+.env
+.env.*
+!.env.example
