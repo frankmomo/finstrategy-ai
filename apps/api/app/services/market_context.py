@@ -8,32 +8,9 @@ from ..serialization import row_to_dict
 async def build_market_context(limit: int = 8) -> dict[str, Any]:
     settings = get_settings()
     async with acquire() as conn:
-        if using_sqlite():
-            market_rows = await conn.fetch(
-                """
-                SELECT mb.ticker, mb.timeframe, mb.ts, mb.open, mb.high, mb.low, mb.close, mb.volume
-                FROM market_bars mb
-                INNER JOIN (
-                  SELECT ticker, MAX(ts) AS max_ts
-                  FROM market_bars
-                  WHERE timeframe = $1
-                  GROUP BY ticker
-                ) latest ON latest.ticker = mb.ticker AND latest.max_ts = mb.ts
-                WHERE mb.timeframe = $1
-                ORDER BY mb.ticker
-                """,
-                settings.active_market_timeframe,
-            )
-        else:
-            market_rows = await conn.fetch(
-                """
-                SELECT DISTINCT ON (ticker) ticker, timeframe, ts, open, high, low, close, volume
-                FROM market_bars
-                WHERE timeframe = $1
-                ORDER BY ticker, ts DESC
-                """,
-                settings.active_market_timeframe,
-            )
+        market_rows = await _fetch_latest_market_rows(conn, settings.active_market_timeframe)
+        if not market_rows and settings.active_market_timeframe != "1d":
+            market_rows = await _fetch_latest_market_rows(conn, "1d")
 
         strategy_rows = await conn.fetch(
             """
@@ -61,3 +38,32 @@ async def build_market_context(limit: int = 8) -> dict[str, Any]:
         "active_strategies": [row_to_dict(row) for row in strategy_rows],
         "recent_alerts": [row_to_dict(row) for row in alert_rows],
     }
+
+
+async def _fetch_latest_market_rows(conn, timeframe: str):
+    if using_sqlite():
+        return await conn.fetch(
+            """
+            SELECT mb.ticker, mb.timeframe, mb.ts, mb.open, mb.high, mb.low, mb.close, mb.volume
+            FROM market_bars mb
+            INNER JOIN (
+              SELECT ticker, MAX(ts) AS max_ts
+              FROM market_bars
+              WHERE timeframe = $1
+              GROUP BY ticker
+            ) latest ON latest.ticker = mb.ticker AND latest.max_ts = mb.ts
+            WHERE mb.timeframe = $1
+            ORDER BY mb.ticker
+            """,
+            timeframe,
+        )
+
+    return await conn.fetch(
+        """
+        SELECT DISTINCT ON (ticker) ticker, timeframe, ts, open, high, low, close, volume
+        FROM market_bars
+        WHERE timeframe = $1
+        ORDER BY ticker, ts DESC
+        """,
+        timeframe,
+    )
