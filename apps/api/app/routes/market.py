@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from ..config import get_settings
 from ..db import acquire, using_sqlite
+from ..serialization import row_to_dict
 
 router = APIRouter(tags=["market"])
 
@@ -36,7 +37,7 @@ async def latest_market() -> dict[str, dict]:
                 """,
                 settings.active_market_timeframe,
             )
-    return {row["ticker"]: dict(row) for row in rows}
+    return {row["ticker"]: row_to_dict(row) for row in rows}
 
 
 @router.get("/market/history/{ticker}")
@@ -55,7 +56,7 @@ async def market_history(ticker: str, limit: int = 240) -> list[dict]:
             min(max(limit, 1), 1000),
             settings.active_market_timeframe,
         )
-    return list(reversed([dict(row) for row in rows]))
+    return list(reversed([row_to_dict(row) for row in rows]))
 
 
 @router.get("/market/tickers")

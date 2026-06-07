@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..db import acquire, using_sqlite
 from ..models import StrategyCreate
+from ..serialization import row_to_dict
 from ..services.vision_parser import parse_strategy_image
 
 router = APIRouter(tags=["strategies"])
@@ -34,7 +35,7 @@ async def create_strategy(payload: StrategyCreate) -> dict:
             """,
             strategy_id,
         )
-    return dict(row)
+    return row_to_dict(row)
 
 
 @router.post("/strategies/from-image")
@@ -75,7 +76,7 @@ async def create_strategy_from_image(
             strategy_id,
         )
 
-    return dict(row)
+    return row_to_dict(row)
 
 
 @router.get("/strategies")
@@ -101,7 +102,7 @@ async def list_strategies(status: str = "active") -> list[dict]:
                 """,
                 status,
             )
-    return [dict(row) for row in rows]
+    return [row_to_dict(row) for row in rows]
 
 
 @router.patch("/strategies/{strategy_id}/status")
@@ -123,7 +124,7 @@ async def update_strategy_status(strategy_id: UUID, status: str) -> dict:
 
     if not row:
         raise HTTPException(status_code=404, detail="Strategy not found")
-    return dict(row)
+    return row_to_dict(row)
 
 
 @router.get("/alerts")
@@ -140,4 +141,4 @@ async def list_alerts(limit: int = 50) -> list[dict]:
             """,
             min(max(limit, 1), 200),
         )
-    return [dict(row) for row in rows]
+    return [row_to_dict(row) for row in rows]

@@ -2,6 +2,7 @@ from typing import Any
 
 from ..config import get_settings
 from ..db import acquire, using_sqlite
+from ..serialization import row_to_dict
 
 
 async def build_market_context(limit: int = 8) -> dict[str, Any]:
@@ -56,7 +57,7 @@ async def build_market_context(limit: int = 8) -> dict[str, Any]:
         )
 
     return {
-        "latest_market": [dict(row) for row in market_rows],
-        "active_strategies": [dict(row) for row in strategy_rows],
-        "recent_alerts": [dict(row) for row in alert_rows],
+        "latest_market": [row_to_dict(row) for row in market_rows],
+        "active_strategies": [row_to_dict(row) for row in strategy_rows],
+        "recent_alerts": [row_to_dict(row) for row in alert_rows],
     }
