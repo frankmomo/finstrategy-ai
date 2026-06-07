@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     fmp_api_key: str = ""
     deepseek_api_key: str = ""
+    app_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com"
     deepseek_model: str = "deepseek-chat"
     cors_origins: str = "http://localhost:5173,http://localhost:3000"

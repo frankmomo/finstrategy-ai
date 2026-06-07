@@ -9,6 +9,7 @@ __pycache__/
 *.log
 *.db
 strategy-test.png
+.access-key.tmp
 .env
 .env.*
 !.env.example

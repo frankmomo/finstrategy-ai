@@ -106,6 +106,57 @@ button, .button {
   cursor: pointer;
 }
 
+input {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(2, 6, 23, 0.7);
+  color: #e5e7eb;
+  padding: 12px 14px;
+  font: inherit;
+}
+
+.gate {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.gate-card {
+  max-width: 620px;
+}
+
+.gate-card h1 {
+  font-size: clamp(2rem, 6vw, 3.5rem);
+}
+
+.gate-form {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.gate-form button, .access-bar button {
+  padding: 0 16px;
+  font-weight: 900;
+  background: rgba(37, 99, 235, 0.4);
+}
+
+.access-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: rgba(2, 6, 23, 0.9);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+  color: #93c5fd;
+  font-size: 0.8rem;
+}
+
 .ticker-strip button {
   padding: 12px;
   display: grid;

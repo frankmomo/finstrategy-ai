@@ -1,8 +1,9 @@
 from uuid import UUID
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 
+from ..auth import require_api_key
 from ..db import acquire, using_sqlite
 from ..models import StrategyCreate
 from ..rate_limit import check_rate_limit
@@ -12,7 +13,7 @@ from ..services.vision_parser import parse_strategy_image
 router = APIRouter(tags=["strategies"])
 
 
-@router.post("/strategies")
+@router.post("/strategies", dependencies=[Depends(require_api_key)])
 async def create_strategy(payload: StrategyCreate) -> dict:
     strategy_id = uuid4()
     async with acquire() as conn:
@@ -39,7 +40,7 @@ async def create_strategy(payload: StrategyCreate) -> dict:
     return row_to_dict(row)
 
 
-@router.post("/strategies/from-image")
+@router.post("/strategies/from-image", dependencies=[Depends(require_api_key)])
 async def create_strategy_from_image(
     request: Request,
     file: UploadFile = File(...),
@@ -110,7 +111,7 @@ async def list_strategies(status: str = "active") -> list[dict]:
     return [row_to_dict(row) for row in rows]
 
 
-@router.patch("/strategies/{strategy_id}/status")
+@router.patch("/strategies/{strategy_id}/status", dependencies=[Depends(require_api_key)])
 async def update_strategy_status(strategy_id: UUID, status: str) -> dict:
     if status not in {"active", "paused", "archived"}:
         raise HTTPException(status_code=400, detail="Invalid strategy status")

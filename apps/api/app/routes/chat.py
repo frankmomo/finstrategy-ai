@@ -1,6 +1,7 @@
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
+from ..auth import require_api_key
 from ..rate_limit import check_rate_limit
 from ..services.deepseek_chat import ask_deepseek
 
@@ -17,7 +18,7 @@ class ChatRequest(BaseModel):
     history: list[ChatMessage] = Field(default_factory=list)
 
 
-@router.post("/chat")
+@router.post("/chat", dependencies=[Depends(require_api_key)])
 async def chat(payload: ChatRequest, request: Request) -> dict:
     check_rate_limit(request, bucket="chat", max_requests=12, window_seconds=900)
     try:
