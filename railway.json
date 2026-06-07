@@ -2,12 +2,10 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "builder": "DOCKERFILE",
-    "dockerfilePath": "apps/api/Dockerfile"
+    "dockerfilePath": "apps/worker/Dockerfile"
   },
   "deploy": {
-    "preDeployCommand": "python scripts/migrate.py",
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 300,
+    "startCommand": "python worker/realtime_worker.py",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   }
