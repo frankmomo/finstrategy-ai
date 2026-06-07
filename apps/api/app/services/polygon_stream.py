@@ -44,6 +44,12 @@ class PolygonAggregateStream:
                 if not isinstance(events, list):
                     continue
                 for event in events:
+                    if event.get("ev") == "status":
+                        print(
+                            "[polygon] status "
+                            f"{event.get('status')}: {event.get('message', '')}"
+                        )
+                        continue
                     bar = _parse_aggregate(event)
                     if bar:
                         await self.on_bar(bar)
