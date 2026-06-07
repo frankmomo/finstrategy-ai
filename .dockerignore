@@ -1,0 +1,13 @@
+.git
+.venv
+node_modules
+dist
+dist.zip
+__pycache__
+*.py[cod]
+*.log
+*.db
+.env
+.env.*
+!.env.example
+strategy-test.png

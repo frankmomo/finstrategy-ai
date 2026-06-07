@@ -15,6 +15,12 @@ Use Dockerfile path:
 apps/api/Dockerfile
 ```
 
+Use Railway config source:
+
+```txt
+railway.api.json
+```
+
 Start command is handled by the Dockerfile and respects Railway's `PORT`:
 
 ```txt
@@ -39,6 +45,12 @@ Use Dockerfile path:
 
 ```txt
 apps/worker/Dockerfile
+```
+
+Use Railway config source:
+
+```txt
+railway.worker.json
 ```
 
 Start command:
