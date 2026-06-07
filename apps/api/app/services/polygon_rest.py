@@ -25,6 +25,8 @@ class PolygonRestPoller:
                     bar = await self._fetch_previous_bar(client, ticker)
                     if bar:
                         await self.on_bar(bar)
+                    if self.settings.polygon_rest_ticker_delay_seconds > 0:
+                        await asyncio.sleep(self.settings.polygon_rest_ticker_delay_seconds)
                 await asyncio.sleep(self.settings.polygon_rest_poll_seconds)
 
     async def _fetch_previous_bar(self, client: httpx.AsyncClient, ticker: str) -> dict[str, Any] | None:

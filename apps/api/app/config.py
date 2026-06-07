@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     polygon_ingestion_mode: str = "websocket"
     market_data_timeframe: str = ""
     polygon_rest_poll_seconds: int = 30
+    polygon_rest_ticker_delay_seconds: float = 0
     enable_api_ingestion: bool = False
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")

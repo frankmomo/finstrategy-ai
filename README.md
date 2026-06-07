@@ -2,6 +2,11 @@
 
 Production-oriented web app for real-time analysis of SPY, MSFT, TSLA, NVDA, AAPL, META, GOOGL, NFLX, and AMZN.
 
+## Current Production
+
+- Dashboard: https://finstrategy-ai.vercel.app
+- API: https://api-production-b4ac.up.railway.app/api/health
+
 ## Architecture
 
 - `apps/api`: FastAPI service for strategies, market history, alerts, news, and image-to-strategy extraction.
