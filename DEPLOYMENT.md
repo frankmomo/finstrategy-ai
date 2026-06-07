@@ -4,7 +4,7 @@
 
 - Vercel: static React/Vite dashboard from `dist`.
 - Railway API service: FastAPI app using `apps/api/Dockerfile`.
-- Railway worker service: background Polygon ingestion and strategy evaluator using `apps/worker/Dockerfile`.
+- Railway worker service: optional background Polygon ingestion using `apps/worker/Dockerfile`.
 - Railway Postgres: shared database for API and worker.
 
 ## Railway API service
@@ -18,7 +18,13 @@ apps/api/Dockerfile
 Use Railway config source:
 
 ```txt
-railway.api.json
+railway.json
+```
+
+For small Railway plans, run ingestion inside the API service:
+
+```txt
+ENABLE_API_INGESTION=true
 ```
 
 Start command is handled by the Dockerfile and respects Railway's `PORT`:
@@ -113,6 +119,7 @@ POLYGON_WS_URL=wss://socket.polygon.io/stocks
 POLYGON_INGESTION_MODE=rest_poll
 MARKET_DATA_TIMEFRAME=1d
 POLYGON_REST_POLL_SECONDS=30
+ENABLE_API_INGESTION=true
 ```
 
 Vercel:
