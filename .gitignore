@@ -1,6 +1,8 @@
 node_modules/
 dist/
 dist.zip
+.vercel/
+.vercel-finstrategy-cli/
 .venv/
 __pycache__/
 *.py[cod]
@@ -10,3 +12,5 @@ strategy-test.png
 .env
 .env.*
 !.env.example
+
+.vercel
