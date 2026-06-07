@@ -34,6 +34,7 @@ class PolygonAggregateStream:
             ping_timeout=20,
         ) as ws:
             await ws.send(json.dumps({"action": "auth", "params": self.settings.polygon_api_key}))
+            await _wait_for_auth_success(ws)
             channels = ",".join(f"AM.{ticker}" for ticker in self.settings.ticker_list)
             await ws.send(json.dumps({"action": "subscribe", "params": channels}))
             print(f"[polygon] subscribed: {channels}")
@@ -64,3 +65,21 @@ def _parse_aggregate(event: dict[str, Any]) -> dict[str, Any] | None:
         "close": float(event["c"]),
         "volume": float(event.get("v") or 0),
     }
+
+
+async def _wait_for_auth_success(ws) -> None:
+    while True:
+        raw = await asyncio.wait_for(ws.recv(), timeout=20)
+        events = json.loads(raw)
+        if not isinstance(events, list):
+            continue
+        for event in events:
+            if event.get("ev") != "status":
+                continue
+            status = event.get("status")
+            message = event.get("message", "")
+            if status == "auth_success":
+                print("[polygon] authenticated")
+                return
+            if status in {"auth_failed", "error"}:
+                raise RuntimeError(f"Polygon authentication failed: {message}")
