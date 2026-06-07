@@ -301,6 +301,20 @@ code {
   font-size: 0.82rem;
 }
 
+.notice {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(250, 204, 21, 0.28);
+  background: rgba(113, 63, 18, 0.24);
+  color: #fde68a;
+  font-size: 0.88rem;
+}
+
+.notice strong {
+  color: #facc15;
+}
+
 footer {
   color: #6b7280;
   text-align: center;

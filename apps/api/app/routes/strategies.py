@@ -1,10 +1,11 @@
 from uuid import UUID
 from uuid import uuid4
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 
 from ..db import acquire, using_sqlite
 from ..models import StrategyCreate
+from ..rate_limit import check_rate_limit
 from ..serialization import row_to_dict
 from ..services.vision_parser import parse_strategy_image
 
@@ -40,10 +41,14 @@ async def create_strategy(payload: StrategyCreate) -> dict:
 
 @router.post("/strategies/from-image")
 async def create_strategy_from_image(
+    request: Request,
     file: UploadFile = File(...),
     name: str | None = Form(None),
 ) -> dict:
+    check_rate_limit(request, bucket="vision", max_requests=5, window_seconds=3600)
     image_bytes = await file.read()
+    if len(image_bytes) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail="Image must be 8 MB or smaller")
     try:
         rules, confidence = parse_strategy_image(
             image_bytes,

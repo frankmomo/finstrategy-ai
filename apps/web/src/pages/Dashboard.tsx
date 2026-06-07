@@ -83,6 +83,11 @@ export default function Dashboard() {
 
       {error && <div className="error">{error}</div>}
 
+      <section className="notice">
+        <strong>Analysis only.</strong> FinStrategy is an analytical dashboard, not financial advice, broker execution,
+        or a recommendation to buy or sell securities. Validate all signals independently before making decisions.
+      </section>
+
       <nav className="ticker-strip">
         {TICKERS.map((symbol) => (
           <button key={symbol} className={symbol === ticker ? 'selected' : ''} onClick={() => setTicker(symbol)}>
