@@ -34,7 +34,7 @@ class PolygonAggregateStream:
             ping_timeout=20,
         ) as ws:
             await ws.send(json.dumps({"action": "auth", "params": self.settings.polygon_api_key}))
-            channels = ",".join(f"A.{ticker}" for ticker in self.settings.ticker_list)
+            channels = ",".join(f"AM.{ticker}" for ticker in self.settings.ticker_list)
             await ws.send(json.dumps({"action": "subscribe", "params": channels}))
             print(f"[polygon] subscribed: {channels}")
 
