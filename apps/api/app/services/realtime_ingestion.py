@@ -12,6 +12,7 @@ from .strategy_engine import evaluate_strategy
 
 
 state = IndicatorState()
+processed_bars = 0
 
 
 async def load_active_strategies(conn) -> list[dict[str, Any]]:
@@ -61,6 +62,7 @@ async def persist_bar(conn, bar: dict[str, Any]) -> None:
 
 
 async def on_bar(bar: dict[str, Any]) -> None:
+    global processed_bars
     ticker = bar["ticker"]
     state.update(ticker, bar)
 
@@ -88,9 +90,21 @@ async def on_bar(bar: dict[str, Any]) -> None:
                 )
                 print(f"[alert] {strategy['name']} matched on {ticker} at {bar['close']}")
 
+    processed_bars += 1
+    if processed_bars == 1 or processed_bars % 25 == 0:
+        print(
+            "[worker] persisted "
+            f"{processed_bars} bars; latest={ticker} {bar['timeframe']} {bar['ts']}"
+        )
+
 
 async def run_ingestion_forever() -> None:
     settings = get_settings()
+    print(
+        "[worker] starting ingestion "
+        f"mode={settings.polygon_ingestion_mode} timeframe={settings.market_data_timeframe} "
+        f"tickers={','.join(settings.ticker_list)}"
+    )
     if settings.polygon_ingestion_mode == "rest_poll":
         stream = PolygonRestPoller(on_bar=on_bar)
     else:

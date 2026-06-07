@@ -35,7 +35,9 @@ class PolygonRestPoller:
             params={"adjusted": "true", "apiKey": self.settings.polygon_api_key},
         )
         if response.status_code == 429:
-            print(f"[polygon-rest] rate limited while fetching {ticker}; skipping this cycle")
+            retry_after = _retry_after_seconds(response)
+            print(f"[polygon-rest] rate limited while fetching {ticker}; backing off {retry_after}s")
+            await asyncio.sleep(retry_after)
             return None
         if response.status_code >= 400:
             print(f"[polygon-rest] provider error {response.status_code} while fetching {ticker}")
@@ -57,3 +59,13 @@ class PolygonRestPoller:
             "close": float(result["c"]),
             "volume": float(result.get("v") or 0),
         }
+
+
+def _retry_after_seconds(response: httpx.Response) -> int:
+    raw_value = response.headers.get("Retry-After")
+    if raw_value:
+        try:
+            return max(5, min(int(raw_value), 120))
+        except ValueError:
+            pass
+    return 60
