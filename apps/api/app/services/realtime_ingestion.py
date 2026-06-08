@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from ..config import get_settings
-from ..db import acquire
+from ..db import acquire, using_sqlite
 from .alerts import create_alert
 from .indicators import IndicatorState
 from .polygon_rest import PolygonRestPoller, fetch_historical_bars
@@ -169,11 +169,13 @@ async def evaluate_strategies_for_bar(conn, bar: dict[str, Any], strategies: lis
             continue
         result = evaluate_strategy(strategy["rules"], state, ticker, timeframe)
         if result["matched"]:
+            if await alert_already_exists(conn, strategy["id"], ticker, timeframe, str(latest["ts"])):
+                continue
             await create_alert(
                 conn=conn,
                 strategy_id=strategy["id"],
                 ticker=ticker,
-                price=latest["close"],
+                price=float(latest["close"]),
                 payload={
                     "strategy_name": strategy["name"],
                     "timeframe": timeframe,
@@ -182,6 +184,28 @@ async def evaluate_strategies_for_bar(conn, bar: dict[str, Any], strategies: lis
                 },
             )
             print(f"[alert] {strategy['name']} matched on {ticker} {timeframe} at {latest['close']}")
+
+
+async def alert_already_exists(conn, strategy_id: Any, ticker: str, timeframe: str, bar_ts: str) -> bool:
+    if using_sqlite():
+        return False
+
+    row = await conn.fetchrow(
+        """
+        SELECT id
+        FROM alerts
+        WHERE strategy_id = $1
+          AND ticker = $2
+          AND payload->>'timeframe' = $3
+          AND payload->'bar'->>'ts' = $4
+        LIMIT 1
+        """,
+        strategy_id,
+        ticker,
+        timeframe,
+        bar_ts,
+    )
+    return row is not None
 
 
 def derive_intraday_bars(bar: dict[str, Any]) -> list[dict[str, Any]]:
