@@ -6,17 +6,26 @@ from typing import Any
 @dataclass
 class IndicatorState:
     max_bars: int = 500
-    bars: dict[str, deque[dict[str, Any]]] = field(default_factory=lambda: defaultdict(deque))
+    bars: dict[tuple[str, str], deque[dict[str, Any]]] = field(default_factory=lambda: defaultdict(deque))
 
-    def update(self, ticker: str, bar: dict[str, Any]) -> None:
-        bucket = self.bars[ticker]
+    def update(self, ticker: str, timeframe: str, bar: dict[str, Any]) -> None:
+        bucket = self.bars[(ticker, timeframe)]
         bucket.append(bar)
         while len(bucket) > self.max_bars:
             bucket.popleft()
 
-    def value(self, ticker: str, indicator: str, params: dict[str, Any] | None = None):
+    def replace(self, ticker: str, timeframe: str, bars: list[dict[str, Any]]) -> None:
+        bucket = self.bars[(ticker, timeframe)]
+        bucket.clear()
+        for bar in bars[-self.max_bars :]:
+            bucket.append(bar)
+
+    def count(self, ticker: str, timeframe: str) -> int:
+        return len(self.bars.get((ticker, timeframe), []))
+
+    def value(self, ticker: str, timeframe: str, indicator: str, params: dict[str, Any] | None = None):
         params = params or {}
-        series = list(self.bars.get(ticker, []))
+        series = list(self.bars.get((ticker, timeframe), []))
         if not series:
             return None
 

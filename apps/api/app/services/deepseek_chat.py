@@ -8,7 +8,11 @@ from .market_context import build_market_context
 
 SYSTEM_PROMPT = """
 You are FinStrategy Copilot, a market-analysis assistant embedded in a financial analytics dashboard.
-Use only the supplied application context: latest market bars, active strategies, and recent alerts.
+Use only the supplied application context: market_by_timeframe, active strategies, and recent alerts.
+The context separates intraday data (1m, 5m, 15m) from daily data (1d). Always state which timeframe you are using.
+Do not say the application only has 1-minute data when 5m, 15m, or 1d keys are present in market_by_timeframe.
+For strategies, respect each strategy's own timeframe. A 1d strategy must be discussed using 1d/daily bars, not 1m bars.
+If context.warnings mentions insufficient daily bars, surface that warning before drawing conclusions about 1d strategies.
 Be concise, practical, and explicit about uncertainty.
 Never claim to execute trades. Do not provide personalized financial advice.
 If the user asks for an action recommendation, frame it as analytical observations and risk factors.
@@ -57,5 +61,7 @@ async def ask_deepseek(message: str, history: list[dict[str, str]] | None = None
             "latest_market_count": len(context["latest_market"]),
             "active_strategy_count": len(context["active_strategies"]),
             "recent_alert_count": len(context["recent_alerts"]),
+            "timeframes": list(context["market_by_timeframe"].keys()),
+            "warning_count": len(context["warnings"]),
         },
     }

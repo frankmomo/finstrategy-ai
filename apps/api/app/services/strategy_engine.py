@@ -3,12 +3,12 @@ from typing import Any
 from .indicators import IndicatorState
 
 
-def evaluate_strategy(rules: dict[str, Any], state: IndicatorState, ticker: str) -> dict[str, Any]:
+def evaluate_strategy(rules: dict[str, Any], state: IndicatorState, ticker: str, timeframe: str) -> dict[str, Any]:
     details: list[dict[str, Any]] = []
 
     for condition in rules.get("conditions", []):
-        left = state.value(ticker, condition["indicator"], condition.get("params", {}))
-        right = _right_value(condition, state, ticker)
+        left = state.value(ticker, timeframe, condition["indicator"], condition.get("params", {}))
+        right = _right_value(condition, state, ticker, timeframe)
         matched = _compare(left, condition["operator"], right)
         details.append(
             {
@@ -25,10 +25,10 @@ def evaluate_strategy(rules: dict[str, Any], state: IndicatorState, ticker: str)
     }
 
 
-def _right_value(condition: dict[str, Any], state: IndicatorState, ticker: str):
+def _right_value(condition: dict[str, Any], state: IndicatorState, ticker: str, timeframe: str):
     compare_to = condition.get("compare_to")
     if compare_to:
-        return state.value(ticker, compare_to["indicator"], compare_to.get("params", {}))
+        return state.value(ticker, timeframe, compare_to["indicator"], compare_to.get("params", {}))
     value = condition.get("value")
     if value is None:
         return None
