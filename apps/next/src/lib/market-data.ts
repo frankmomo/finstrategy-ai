@@ -27,6 +27,15 @@ async function marketFetch<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+async function optionalMarketFetch<T>(path: string, fallback: T): Promise<T> {
+  try {
+    return await marketFetch<T>(path);
+  } catch (error) {
+    console.warn(`Optional market data unavailable for ${path}`, error);
+    return fallback;
+  }
+}
+
 export async function getInitialQuotes(): Promise<MarketQuote[]> {
   const latest = await marketFetch<Record<string, OhlcvBar>>("/market/latest");
   return TICKERS.flatMap((ticker) => {
@@ -48,5 +57,5 @@ export async function getChartHistory(ticker: Ticker): Promise<OhlcvBar[]> {
 }
 
 export async function getOptionChain(ticker: Ticker): Promise<OptionContract[]> {
-  return marketFetch<OptionContract[]>(`/options/chain/${ticker}`);
+  return optionalMarketFetch<OptionContract[]>(`/options/chain/${ticker}`, []);
 }
