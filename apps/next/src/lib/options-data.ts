@@ -296,7 +296,10 @@ function normalizePolygonContract(record: Record<string, unknown>): OptionContra
 
 async function fetchPolygonOptionChain(ticker: string, apiKey: string): Promise<OptionChainResponse> {
   const url = `https://api.polygon.io/v3/snapshot/options/${ticker}?limit=250&apiKey=${apiKey}`;
-  const payload = await fetchJson(url);
+  const [payload, underlyingPrice] = await Promise.all([
+    fetchJson(url),
+    fetchPolygonUnderlyingPrice(ticker, apiKey).catch(() => null)
+  ]);
   const root = isRecord(payload) ? payload : {};
   const results = Array.isArray(root.results) ? root.results : [];
   const contracts = results
@@ -313,11 +316,20 @@ async function fetchPolygonOptionChain(ticker: string, apiKey: string): Promise<
 
   return {
     ticker,
-    underlyingPrice: toNumber(getField(underlying, ["price"])),
+    underlyingPrice: underlyingPrice ?? toNumber(getField(underlying, ["price"])),
     provider: "polygon",
     updatedAt: nowIso(),
     contracts
   };
+}
+
+async function fetchPolygonUnderlyingPrice(ticker: string, apiKey: string): Promise<number | null> {
+  const snapshot = await fetchJson(`https://api.polygon.io/v2/snapshot/locale/us/markets/stocks/tickers/${ticker}?apiKey=${apiKey}`);
+  const root = isRecord(snapshot) ? snapshot : {};
+  const tickerSnapshot = isRecord(root.ticker) ? root.ticker : {};
+  const day = isRecord(tickerSnapshot.day) ? tickerSnapshot.day : {};
+  const prevDay = isRecord(tickerSnapshot.prevDay) ? tickerSnapshot.prevDay : {};
+  return toNumber(getField(day, ["c"])) ?? toNumber(getField(prevDay, ["c"]));
 }
 
 export async function getOptionsChain(tickerInput: string): Promise<OptionChainResponse> {
