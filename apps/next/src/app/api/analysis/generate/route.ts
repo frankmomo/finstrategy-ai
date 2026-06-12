@@ -104,15 +104,19 @@ export async function POST(request: Request) {
         controller.close();
 
         if (analysisOutput.trim()) {
-          await getPrisma().marketAnalysis.create({
-            data: {
-              userId,
-              ticker: input.ticker.toUpperCase(),
-              aiModelUsed: provider.model,
-              inputSnapshot: input,
-              analysisOutput
-            }
-          });
+          try {
+            await getPrisma().marketAnalysis.create({
+              data: {
+                userId,
+                ticker: input.ticker.toUpperCase(),
+                aiModelUsed: provider.model,
+                inputSnapshot: input,
+                analysisOutput
+              }
+            });
+          } catch (error) {
+            console.error("Market analysis persistence failed", error);
+          }
         }
       } catch (error) {
         controller.error(error);
