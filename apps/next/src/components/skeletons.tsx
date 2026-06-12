@@ -14,7 +14,7 @@ export function PanelSkeleton({ title }: { title: string }) {
 export function MarketSkeleton() {
   return (
     <main className="min-h-screen bg-terminal-bg p-6">
-      <PanelSkeleton title="Booting market terminal" />
+      <PanelSkeleton title="Iniciando terminal de mercado" />
     </main>
   );
 }

@@ -8,12 +8,13 @@ export const runtime = "nodejs";
 
 function buildPrompt(input: AnalysisInput) {
   return [
-    "You are FinStrategy Engine, a trading-analysis copilot for a professional market dashboard.",
-    "Use only the supplied hard market data. Do not invent prices, volume, implied volatility, or order execution.",
-    "Return concise Markdown with: Market State, Volatility/Options Read, Technical Bias, Invalidations, and Risk Notes.",
-    "This is analysis only, not personalized financial advice.",
+    "Eres FinStrategy Engine, un copiloto de analisis de trading para un panel profesional de mercado.",
+    "Responde siempre en espanol.",
+    "Usa solo los datos duros de mercado suministrados. No inventes precios, volumen, volatilidad implicita ni ejecucion de ordenes.",
+    "Devuelve Markdown conciso con: Estado del mercado, Lectura de volatilidad/opciones, Sesgo tecnico, Invalidaciones y Riesgos.",
+    "Esto es solo analisis, no asesoria financiera personalizada.",
     "",
-    "Market input JSON:",
+    "Datos de mercado en JSON:",
     JSON.stringify(input, null, 2)
   ].join("\n");
 }
@@ -37,15 +38,15 @@ function getProviderConfig() {
 
 export async function POST(request: Request) {
   const userId = await getSessionUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!userId) return NextResponse.json({ error: "No autorizado" }, { status: 401 });
 
   const input = (await request.json()) as AnalysisInput;
   if (!input.ticker || !Number.isFinite(input.price) || !Number.isFinite(input.volume)) {
-    return NextResponse.json({ error: "ticker, price and volume are required" }, { status: 422 });
+    return NextResponse.json({ error: "ticker, precio y volumen son requeridos" }, { status: 422 });
   }
 
   const provider = getProviderConfig();
-  if (!provider.key) return NextResponse.json({ error: "LLM provider key is not configured" }, { status: 503 });
+  if (!provider.key) return NextResponse.json({ error: "La API key del proveedor LLM no esta configurada" }, { status: 503 });
 
   const encoder = new TextEncoder();
   const prompt = buildPrompt(input);
@@ -62,14 +63,14 @@ export async function POST(request: Request) {
       stream: true,
       temperature: 0.2,
       messages: [
-        { role: "system", content: "You are a precise fintech market-analysis assistant." },
+        { role: "system", content: "Eres un asistente fintech preciso de analisis de mercado. Responde en espanol." },
         { role: "user", content: prompt }
       ]
     })
   });
 
   if (!upstream.ok || !upstream.body) {
-    return NextResponse.json({ error: `LLM provider failed: ${upstream.statusText}` }, { status: 502 });
+    return NextResponse.json({ error: `Fallo el proveedor LLM: ${upstream.statusText}` }, { status: 502 });
   }
 
   const stream = new ReadableStream({

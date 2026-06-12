@@ -1,6 +1,6 @@
 export type Ticker = string;
 
-export const SUPPORTED_TICKERS = ["SPY", "MSFT", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "NFLX", "AMZN"] as const;
+export const SUPPORTED_TICKERS = ["SPY", "MSFT", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "NFLX", "AMZN", "PLTR"] as const;
 
 export type MarketQuote = {
   ticker: Ticker;
@@ -23,19 +23,36 @@ export type OhlcvBar = {
 };
 
 export type OptionContract = {
-  id: string;
-  underlyingTicker: Ticker;
-  strikePrice: number;
-  expirationDate: string;
-  optionType: "CALL" | "PUT";
-  bid: number;
-  ask: number;
-  impliedVolatility: number;
-  delta: number;
-  gamma: number;
-  theta: number;
-  vega: number;
-  underlyingPrice: number;
+  symbol: string;
+  type: "CALL" | "PUT";
+  expiry: string;
+  dte: number;
+  strike: number;
+  bid: number | null;
+  ask: number | null;
+  mid: number | null;
+  last: number | null;
+  iv: number | null;
+  delta: number | null;
+  gamma: number | null;
+  theta: number | null;
+  vega: number | null;
+  volume: number | null;
+  openInterest: number | null;
+  spreadPct: number | null;
+  qualityScore: number;
+};
+
+export type OptionsDataProvider = "fmp" | "polygon" | "none";
+
+export type OptionChainResponse = {
+  ticker: Ticker;
+  underlyingPrice: number | null;
+  provider: OptionsDataProvider;
+  updatedAt: string;
+  contracts: OptionContract[];
+  message?: string;
+  errorCode?: "NO_PROVIDER" | "PROVIDER_ERROR" | "INVALID_PROVIDER";
 };
 
 export type AnalysisInput = {

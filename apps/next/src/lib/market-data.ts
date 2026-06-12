@@ -1,4 +1,5 @@
-import { SUPPORTED_TICKERS, type MarketQuote, type OhlcvBar, type OptionContract, type Strategy, type StrategyAlert, type Ticker } from "./types";
+import { getOptionsChain } from "./options-data";
+import { SUPPORTED_TICKERS, type MarketQuote, type OhlcvBar, type OptionChainResponse, type Strategy, type StrategyAlert, type Ticker } from "./types";
 
 function getMarketApiBase() {
   return process.env.MARKET_API_BASE_URL || process.env.NEXT_PUBLIC_MARKET_API_BASE_URL || "";
@@ -54,8 +55,8 @@ export async function getChartHistory(ticker: Ticker): Promise<OhlcvBar[]> {
   return marketFetch<OhlcvBar[]>(`/market/history/${ticker}?timeframe=1m&limit=240`);
 }
 
-export async function getOptionChain(ticker: Ticker): Promise<OptionContract[]> {
-  return optionalMarketFetch<OptionContract[]>(`/options/chain/${ticker}`, []);
+export async function getOptionChain(ticker: Ticker): Promise<OptionChainResponse> {
+  return getOptionsChain(ticker);
 }
 
 export async function getActiveStrategies(): Promise<Strategy[]> {

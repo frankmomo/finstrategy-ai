@@ -2,11 +2,11 @@ import { getActiveStrategies, getOptionChain, getRecentAlerts } from "@/lib/mark
 import { TradeWorkspaceClient } from "./trade-workspace-client";
 
 export async function TradeWorkspace() {
-  const [strategies, alerts, contracts] = await Promise.all([
+  const [strategies, alerts, optionChain] = await Promise.all([
     getActiveStrategies(),
     getRecentAlerts(),
     getOptionChain("SPY")
   ]);
 
-  return <TradeWorkspaceClient initialStrategies={strategies} initialAlerts={alerts} initialContracts={contracts} />;
+  return <TradeWorkspaceClient initialStrategies={strategies} initialAlerts={alerts} initialOptionChain={optionChain} />;
 }

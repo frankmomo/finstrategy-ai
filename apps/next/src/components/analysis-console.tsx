@@ -26,7 +26,7 @@ export function AnalysisConsole() {
     });
 
     if (!response.ok || !response.body) {
-      setOutput(`Analysis failed: ${response.statusText}`);
+      setOutput(`El analisis fallo: ${response.statusText}`);
       setIsStreaming(false);
       return;
     }
@@ -51,23 +51,23 @@ export function AnalysisConsole() {
 
   return (
     <section className="border border-terminal-border bg-terminal-panel p-4">
-      <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">AI Strategy Tape</p>
-      <h2 className="text-xl font-semibold text-white">Technical Analysis Stream</h2>
+      <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">Cinta de estrategia IA</p>
+      <h2 className="text-xl font-semibold text-white">Analisis tecnico en streaming</h2>
       <div className="mt-4 grid gap-3">
         <input className="border border-terminal-border bg-black px-3 py-2" value={ticker} onChange={(event) => setTicker(event.target.value.toUpperCase())} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Price" value={price} onChange={(event) => setPrice(event.target.value)} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volume" value={volume} onChange={(event) => setVolume(event.target.value)} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Implied volatility" value={impliedVolatility} onChange={(event) => setImpliedVolatility(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Precio" value={price} onChange={(event) => setPrice(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volumen" value={volume} onChange={(event) => setVolume(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volatilidad implicita" value={impliedVolatility} onChange={(event) => setImpliedVolatility(event.target.value)} />
         <button
           disabled={isStreaming}
           onClick={generateAnalysis}
           className="border border-terminal-cyan bg-cyan-950/30 px-3 py-2 text-terminal-cyan disabled:opacity-50"
         >
-          {isStreaming ? "Streaming..." : "Generate AI Analysis"}
+          {isStreaming ? "Generando..." : "Generar analisis IA"}
         </button>
       </div>
       <pre className="mt-4 min-h-72 whitespace-pre-wrap border border-terminal-border bg-black/50 p-3 text-sm leading-6 text-terminal-text">
-        {output || "Awaiting structured market input..."}
+        {output || "Esperando datos estructurados de mercado..."}
       </pre>
     </section>
   );

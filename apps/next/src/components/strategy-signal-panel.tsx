@@ -10,12 +10,18 @@ function optionDirectionFromSide(side?: string): OptionBias["direction"] {
   return "WATCH";
 }
 
+function sideLabel(side?: string) {
+  if (side === "long") return "sesgo alcista";
+  if (side === "short") return "sesgo bajista";
+  return "sesgo neutral";
+}
+
 function signalFromStrategy(strategy: Strategy): OptionBias[] {
   return strategy.tickers.map((ticker) => ({
     ticker,
     direction: optionDirectionFromSide(strategy.rules?.side),
     timeframe: strategy.timeframe,
-    reason: `${strategy.name}: ${strategy.rules?.side || "neutral"} bias from ${strategy.timeframe} strategy`
+    reason: `${strategy.name}: ${sideLabel(strategy.rules?.side)} en estrategia ${strategy.timeframe}`
   }));
 }
 
@@ -27,7 +33,7 @@ function signalFromAlert(alert: StrategyAlert, strategy?: Strategy): OptionBias 
     direction: optionDirectionFromSide(rawSide),
     timeframe: payload.timeframe || strategy?.timeframe,
     price: Number(alert.price),
-    reason: `${alert.strategy_name || payload.strategy_name || "Strategy alert"} triggered at $${Number(alert.price).toFixed(2)}`
+    reason: `${alert.strategy_name || payload.strategy_name || "Alerta de estrategia"} activada en $${Number(alert.price).toFixed(2)}`
   };
 }
 
@@ -38,7 +44,7 @@ export function StrategySignalPanel({
 }: {
   initialStrategies: Strategy[];
   initialAlerts: StrategyAlert[];
-  onSelectTicker?: (ticker: string) => void;
+  onSelectTicker?: (signal: OptionBias) => void;
 }) {
   const [strategies, setStrategies] = useState(initialStrategies);
   const [alerts, setAlerts] = useState(initialAlerts);
@@ -61,11 +67,11 @@ export function StrategySignalPanel({
         body: formData
       });
       const payload = await response.json();
-      if (!response.ok) throw new Error(payload.detail || payload.error || "Strategy upload failed");
+      if (!response.ok) throw new Error(payload.detail || payload.error || "No se pudo subir la estrategia");
       setStrategies((current) => [payload as Strategy, ...current]);
-      setMessage("Strategy uploaded and saved. It will be evaluated by the market worker.");
+      setMessage("Estrategia subida y guardada. El motor la evaluara contra el mercado.");
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Strategy upload failed");
+      setMessage(error instanceof Error ? error.message : "No se pudo subir la estrategia");
     } finally {
       setUploading(false);
     }
@@ -90,11 +96,11 @@ export function StrategySignalPanel({
     <section className="border border-terminal-border bg-terminal-panel p-4">
       <div className="flex flex-col gap-2 border-b border-terminal-border pb-3 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">Strategy Intake</p>
-          <h2 className="text-xl font-semibold text-white">Upload Strategy & Options Entry Signals</h2>
+          <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">Carga de estrategias</p>
+          <h2 className="text-xl font-semibold text-white">Subir estrategia y detectar entradas CALL/PUT</h2>
         </div>
         <button onClick={refreshSignals} className="border border-terminal-border px-3 py-2 text-xs text-terminal-muted hover:text-white">
-          Refresh Signals
+          Actualizar senales
         </button>
       </div>
 
@@ -102,7 +108,7 @@ export function StrategySignalPanel({
         <input
           className="border border-terminal-border bg-black px-3 py-2 text-sm text-white"
           name="name"
-          placeholder="Strategy name"
+          placeholder="Nombre de la estrategia"
         />
         <input
           accept="image/*"
@@ -112,7 +118,7 @@ export function StrategySignalPanel({
           type="file"
         />
         <button disabled={uploading} className="border border-terminal-cyan bg-cyan-950/30 px-4 py-2 text-terminal-cyan disabled:opacity-50">
-          {uploading ? "Uploading..." : "Upload"}
+          {uploading ? "Subiendo..." : "Subir"}
         </button>
       </form>
 
@@ -121,13 +127,13 @@ export function StrategySignalPanel({
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
         {signals.length === 0 && (
           <p className="border border-terminal-border bg-black/30 p-3 text-sm text-terminal-muted lg:col-span-3">
-            No strategy signals yet. Upload a strategy screenshot or wait for alerts from the market worker.
+            Aun no hay senales de estrategia. Sube una captura o espera alertas del motor de mercado.
           </p>
         )}
         {signals.map((signal, index) => (
           <button
             key={`${signal.ticker}-${signal.direction}-${index}`}
-            onClick={() => onSelectTicker?.(signal.ticker)}
+            onClick={() => onSelectTicker?.(signal)}
             className="border border-terminal-border bg-black/30 p-3 text-left hover:border-terminal-cyan"
           >
             <div className="flex items-center justify-between">
