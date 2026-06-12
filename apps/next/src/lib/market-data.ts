@@ -1,12 +1,10 @@
-import type { MarketQuote, OhlcvBar, OptionContract, Ticker } from "./types";
-
-const TICKERS: Ticker[] = ["SPY", "TSLA", "NVDA"];
+import { SUPPORTED_TICKERS, type MarketQuote, type OhlcvBar, type OptionContract, type Strategy, type StrategyAlert, type Ticker } from "./types";
 
 function getMarketApiBase() {
   return process.env.MARKET_API_BASE_URL || process.env.NEXT_PUBLIC_MARKET_API_BASE_URL || "";
 }
 
-async function marketFetch<T>(path: string, init?: RequestInit): Promise<T> {
+export async function marketFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const baseUrl = getMarketApiBase();
   if (!baseUrl) return [] as T;
 
@@ -38,7 +36,7 @@ async function optionalMarketFetch<T>(path: string, fallback: T): Promise<T> {
 
 export async function getInitialQuotes(): Promise<MarketQuote[]> {
   const latest = await marketFetch<Record<string, OhlcvBar>>("/market/latest");
-  return TICKERS.flatMap((ticker) => {
+  return SUPPORTED_TICKERS.flatMap((ticker) => {
     const bar = latest[ticker];
     if (!bar) return [];
     return {
@@ -58,4 +56,12 @@ export async function getChartHistory(ticker: Ticker): Promise<OhlcvBar[]> {
 
 export async function getOptionChain(ticker: Ticker): Promise<OptionContract[]> {
   return optionalMarketFetch<OptionContract[]>(`/options/chain/${ticker}`, []);
+}
+
+export async function getActiveStrategies(): Promise<Strategy[]> {
+  return optionalMarketFetch<Strategy[]>("/strategies", []);
+}
+
+export async function getRecentAlerts(): Promise<StrategyAlert[]> {
+  return optionalMarketFetch<StrategyAlert[]>("/alerts?limit=30", []);
 }

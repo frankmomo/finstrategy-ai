@@ -1,20 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMarketStream } from "@/hooks/use-market-stream";
-import type { MarketQuote, OhlcvBar, Ticker } from "@/lib/types";
+import { SUPPORTED_TICKERS, type MarketQuote, type OhlcvBar, type Ticker } from "@/lib/types";
 import { MetricCard } from "./metric-card";
-
-const TICKERS: Ticker[] = ["SPY", "TSLA", "NVDA"];
 
 export function MarketBoardClient({
   initialQuotes,
-  historyByTicker
+  initialHistory
 }: {
   initialQuotes: MarketQuote[];
-  historyByTicker: Record<Ticker, OhlcvBar[]>;
+  initialHistory: OhlcvBar[];
 }) {
   const [selectedTicker, setSelectedTicker] = useState<Ticker>("SPY");
+  const [historyByTicker, setHistoryByTicker] = useState<Record<Ticker, OhlcvBar[]>>({ SPY: initialHistory });
+  const [historyLoading, setHistoryLoading] = useState(false);
   const quotesByTicker = useMarketStream(initialQuotes);
   const selectedHistory = historyByTicker[selectedTicker] || [];
   const selectedQuote = quotesByTicker[selectedTicker];
@@ -24,18 +24,33 @@ export function MarketBoardClient({
     [quotesByTicker]
   );
 
+  useEffect(() => {
+    if (historyByTicker[selectedTicker]) return;
+    setHistoryLoading(true);
+    fetch(`/api/market/history/${selectedTicker}`)
+      .then((response) => (response.ok ? response.json() : []))
+      .then((history: OhlcvBar[]) => {
+        setHistoryByTicker((current) => ({ ...current, [selectedTicker]: history }));
+      })
+      .finally(() => setHistoryLoading(false));
+  }, [historyByTicker, selectedTicker]);
+
+  const minLow = selectedHistory.length ? Math.min(...selectedHistory.map((item) => item.low)) : 0;
+  const maxHigh = selectedHistory.length ? Math.max(...selectedHistory.map((item) => item.high)) : 0;
+  const range = maxHigh - minLow;
+
   return (
     <section className="border border-terminal-border bg-terminal-panel p-4">
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">Live Market</p>
-          <h2 className="text-xl font-semibold text-white">SPY / TSLA / NVDA</h2>
+          <h2 className="text-xl font-semibold text-white">Market Watchlist</h2>
         </div>
         <div className="text-right text-xs text-terminal-muted">Polling fallback: 5s</div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-3">
-        {TICKERS.map((ticker) => {
+      <div className="mt-4 grid gap-3 md:grid-cols-3 xl:grid-cols-5">
+        {SUPPORTED_TICKERS.map((ticker) => {
           const quote = quotesByTicker[ticker];
           const tone = quote?.changePercent && quote.changePercent >= 0 ? "positive" : "negative";
           return (
@@ -65,12 +80,11 @@ export function MarketBoardClient({
       <div className="mt-4 h-72 border border-terminal-border bg-black/30 p-3">
         <div className="mb-3 flex items-center justify-between text-xs text-terminal-muted">
           <span>{selectedTicker} OHLCV</span>
-          <span>{selectedHistory.length} bars</span>
+          <span>{historyLoading ? "loading..." : `${selectedHistory.length} bars`}</span>
         </div>
         <div className="flex h-56 items-end gap-1 overflow-hidden">
           {selectedHistory.map((bar) => {
-            const range = Math.max(...selectedHistory.map((item) => item.high)) - Math.min(...selectedHistory.map((item) => item.low));
-            const height = range ? Math.max(4, ((bar.close - Math.min(...selectedHistory.map((item) => item.low))) / range) * 210) : 4;
+            const height = range ? Math.max(4, ((bar.close - minLow) / range) * 210) : 4;
             return (
               <div
                 key={bar.ts}

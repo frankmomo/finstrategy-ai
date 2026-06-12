@@ -1,4 +1,6 @@
-export type Ticker = "SPY" | "TSLA" | "NVDA";
+export type Ticker = string;
+
+export const SUPPORTED_TICKERS = ["SPY", "MSFT", "TSLA", "NVDA", "AAPL", "META", "GOOGL", "NFLX", "AMZN"] as const;
 
 export type MarketQuote = {
   ticker: Ticker;
@@ -44,4 +46,43 @@ export type AnalysisInput = {
   realizedVolatility?: number;
   timeframe?: string;
   optionGreeks?: Partial<Pick<OptionContract, "delta" | "gamma" | "theta" | "vega">>;
+};
+
+export type Strategy = {
+  id: string;
+  name: string;
+  tickers: string[];
+  timeframe: string;
+  rules: {
+    side?: "long" | "short" | "neutral";
+    conditions?: Array<Record<string, unknown>>;
+    notes?: string;
+  };
+  status: string;
+  confidence?: number;
+  created_at?: string;
+};
+
+export type StrategyAlert = {
+  id: string;
+  strategy_id: string;
+  strategy_name?: string;
+  ticker: string;
+  price: number;
+  payload: {
+    strategy_name?: string;
+    timeframe?: string;
+    result?: Record<string, unknown>;
+    bar?: Record<string, unknown>;
+  };
+  status: string;
+  triggered_at: string;
+};
+
+export type OptionBias = {
+  ticker: string;
+  direction: "CALL" | "PUT" | "WATCH";
+  reason: string;
+  timeframe?: string;
+  price?: number;
 };

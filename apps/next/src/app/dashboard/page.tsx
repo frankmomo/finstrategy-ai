@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { AnalysisConsole } from "@/components/analysis-console";
 import { MarketBoard } from "@/components/market-board";
-import { OptionsChainServer } from "@/components/options-chain-server";
 import { PanelSkeleton } from "@/components/skeletons";
+import { TradeWorkspace } from "@/components/trade-workspace";
 import { requireSessionUserId } from "@/lib/session";
 
 export default async function DashboardPage() {
@@ -16,8 +16,8 @@ export default async function DashboardPage() {
           <h1 className="text-3xl font-semibold text-white">Market Command Center</h1>
         </div>
         <p className="max-w-2xl text-sm text-terminal-muted">
-          Analysis-only terminal for SPY, TSLA, and NVDA. Real market providers are injected through server routes and
-          streaming clients; no execution engine is enabled.
+          Analysis-only terminal for a broad equity watchlist, uploaded strategy validation, and options entry research.
+          Real market providers are injected through server routes; no execution engine is enabled.
         </p>
       </header>
 
@@ -28,11 +28,9 @@ export default async function DashboardPage() {
         <AnalysisConsole />
       </div>
 
-      <section className="mt-4">
-        <Suspense fallback={<PanelSkeleton title="Loading options chain" />}>
-          <OptionsChainServer ticker="SPY" />
-        </Suspense>
-      </section>
+      <Suspense fallback={<PanelSkeleton title="Loading strategy and options workspace" />}>
+        <TradeWorkspace />
+      </Suspense>
     </main>
   );
 }
