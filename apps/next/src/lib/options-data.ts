@@ -304,11 +304,16 @@ async function fetchPolygonOptionChain(ticker: string, apiKey: string): Promise<
     .map(normalizePolygonContract)
     .filter((contract): contract is OptionContract => Boolean(contract))
     .sort((a, b) => b.qualityScore - a.qualityScore);
-  const underlying = isRecord(root.underlying_asset) ? root.underlying_asset : {};
+  const firstResult = results.find(isRecord);
+  const underlying = isRecord(root.underlying_asset)
+    ? root.underlying_asset
+    : firstResult && isRecord(firstResult.underlying_asset)
+      ? firstResult.underlying_asset
+      : {};
 
   return {
     ticker,
-    underlyingPrice: toNumber(getField(underlying, ["price", "last_updated"])),
+    underlyingPrice: toNumber(getField(underlying, ["price"])),
     provider: "polygon",
     updatedAt: nowIso(),
     contracts
