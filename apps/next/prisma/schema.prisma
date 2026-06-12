@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OptionType {
+  CALL
+  PUT
+}
+
+enum TriggerCondition {
+  ABOVE
+  BELOW
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  email     String   @unique
+  passwordHash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  analyses       MarketAnalysis[]
+  optionSnapshots OptionContractSnapshot[]
+  priceAlerts    PriceAlert[]
+
+  @@map("users")
+}
+
+model MarketAnalysis {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  ticker        String
+  aiModelUsed   String
+  inputSnapshot Json
+  analysisOutput String  @db.Text
+  createdAt     DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ticker])
+  @@index([userId, ticker, createdAt])
+  @@map("market_analyses")
+}
+
+model OptionContractSnapshot {
+  id                String     @id @default(uuid()) @db.Uuid
+  userId            String     @db.Uuid
+  underlyingTicker  String
+  strikePrice       Decimal    @db.Decimal(18, 6)
+  expirationDate    DateTime
+  optionType        OptionType
+  bid               Decimal    @db.Decimal(18, 6)
+  ask               Decimal    @db.Decimal(18, 6)
+  impliedVolatility Decimal    @db.Decimal(18, 8)
+  delta             Decimal    @db.Decimal(18, 8)
+  gamma             Decimal    @db.Decimal(18, 8)
+  theta             Decimal    @db.Decimal(18, 8)
+  vega              Decimal    @db.Decimal(18, 8)
+  capturedAt        DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([underlyingTicker])
+  @@index([userId, underlyingTicker, expirationDate])
+  @@index([underlyingTicker, expirationDate, strikePrice])
+  @@map("option_contract_snapshots")
+}
+
+model PriceAlert {
+  id               String           @id @default(uuid()) @db.Uuid
+  userId           String           @db.Uuid
+  ticker           String
+  targetPrice      Decimal          @db.Decimal(18, 6)
+  triggerCondition TriggerCondition
+  isActive         Boolean          @default(true)
+  createdAt        DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([ticker])
+  @@index([userId, ticker, isActive])
+  @@map("price_alerts")
+}
