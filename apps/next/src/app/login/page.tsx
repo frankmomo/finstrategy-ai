@@ -1,5 +1,3 @@
-import { loginWithAccessKey } from "../actions";
-
 export default function LoginPage({
   searchParams
 }: {
@@ -17,7 +15,7 @@ export default function LoginPage({
           Enter the private FinStrategy access key. This creates a short-lived secure session for the protected
           dashboard while production auth is finalized.
         </p>
-        <form action={loginWithAccessKey} className="mt-6 grid gap-3">
+        <form action="/api/session/login" method="post" className="mt-6 grid gap-3">
           <input type="hidden" name="next" value={nextPath} />
           <label className="grid gap-2 text-sm text-terminal-muted">
             Access key
