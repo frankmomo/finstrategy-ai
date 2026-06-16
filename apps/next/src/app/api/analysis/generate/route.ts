@@ -279,7 +279,7 @@ export async function POST(request: Request) {
               }
             });
           } catch (error) {
-            console.error("Market analysis persistence failed", error);
+            console.warn("No se pudo guardar el historial de analisis IA", error);
           }
         }
       } catch (error) {
