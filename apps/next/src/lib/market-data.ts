@@ -51,8 +51,12 @@ export async function getInitialQuotes(): Promise<MarketQuote[]> {
   });
 }
 
+export async function getMarketHistory(ticker: Ticker, timeframe = "1m", limit = 240): Promise<OhlcvBar[]> {
+  return marketFetch<OhlcvBar[]>(`/market/history/${ticker}?timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`);
+}
+
 export async function getChartHistory(ticker: Ticker): Promise<OhlcvBar[]> {
-  return marketFetch<OhlcvBar[]>(`/market/history/${ticker}?timeframe=1m&limit=240`);
+  return getMarketHistory(ticker, "1m", 240);
 }
 
 export async function getOptionChain(ticker: Ticker): Promise<OptionChainResponse> {

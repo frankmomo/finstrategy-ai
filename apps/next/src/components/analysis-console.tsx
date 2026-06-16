@@ -19,8 +19,8 @@ export function AnalysisConsole() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ticker,
-        price: Number(price),
-        volume: Number(volume),
+        price: price ? Number(price) : undefined,
+        volume: volume ? Number(volume) : undefined,
         impliedVolatility: impliedVolatility ? Number(impliedVolatility) : undefined
       })
     });
@@ -53,17 +53,20 @@ export function AnalysisConsole() {
     <section className="border border-terminal-border bg-terminal-panel p-4">
       <p className="text-xs uppercase tracking-[0.3em] text-terminal-cyan">Cinta de estrategia IA</p>
       <h2 className="text-xl font-semibold text-white">Analisis tecnico en streaming</h2>
+      <p className="mt-2 text-sm text-terminal-muted">
+        La IA usa historial 1m, 5m, 15m y 1d, opciones reales, estrategias activas y alertas. Precio, volumen e IV son overrides opcionales.
+      </p>
       <div className="mt-4 grid gap-3">
         <input className="border border-terminal-border bg-black px-3 py-2" value={ticker} onChange={(event) => setTicker(event.target.value.toUpperCase())} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Precio" value={price} onChange={(event) => setPrice(event.target.value)} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volumen" value={volume} onChange={(event) => setVolume(event.target.value)} />
-        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volatilidad implicita" value={impliedVolatility} onChange={(event) => setImpliedVolatility(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Precio manual opcional" value={price} onChange={(event) => setPrice(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="Volumen manual opcional" value={volume} onChange={(event) => setVolume(event.target.value)} />
+        <input className="border border-terminal-border bg-black px-3 py-2" placeholder="IV manual opcional" value={impliedVolatility} onChange={(event) => setImpliedVolatility(event.target.value)} />
         <button
           disabled={isStreaming}
           onClick={generateAnalysis}
           className="border border-terminal-cyan bg-cyan-950/30 px-3 py-2 text-terminal-cyan disabled:opacity-50"
         >
-          {isStreaming ? "Generando..." : "Generar analisis IA"}
+          {isStreaming ? "Generando..." : "Generar analisis IA con mercado real"}
         </button>
       </div>
       <pre className="mt-4 min-h-72 whitespace-pre-wrap border border-terminal-border bg-black/50 p-3 text-sm leading-6 text-terminal-text">

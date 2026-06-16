@@ -57,8 +57,8 @@ export type OptionChainResponse = {
 
 export type AnalysisInput = {
   ticker: string;
-  price: number;
-  volume: number;
+  price?: number;
+  volume?: number;
   impliedVolatility?: number;
   realizedVolatility?: number;
   timeframe?: string;
