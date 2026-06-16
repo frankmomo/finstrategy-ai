@@ -42,6 +42,7 @@ POLYGON_API_KEY=
 OPENAI_API_KEY=
 FMP_API_KEY=
 OPTIONS_DATA_PROVIDER=fmp
+MARKETDATA_TOKEN=
 DEEPSEEK_API_KEY=
 DEEPSEEK_BASE_URL=https://api.deepseek.com
 DEEPSEEK_MODEL=deepseek-chat
@@ -86,6 +87,15 @@ or:
 OPTIONS_DATA_PROVIDER=polygon
 POLYGON_API_KEY=xxxxxxxx
 ```
+
+For lower-cost option bid/ask data, MarketData.app is also supported:
+
+```txt
+OPTIONS_DATA_PROVIDER=marketdata
+MARKETDATA_TOKEN=xxxxxxxx
+```
+
+MarketData.app option chains include bid, ask, mid, last, volume, open interest, IV, and greeks when your plan includes options data.
 
 The normalized endpoint is:
 

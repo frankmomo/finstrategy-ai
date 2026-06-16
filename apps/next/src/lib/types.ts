@@ -43,7 +43,7 @@ export type OptionContract = {
   qualityScore: number;
 };
 
-export type OptionsDataProvider = "fmp" | "polygon" | "none";
+export type OptionsDataProvider = "fmp" | "polygon" | "marketdata" | "none";
 
 export type OptionChainResponse = {
   ticker: Ticker;

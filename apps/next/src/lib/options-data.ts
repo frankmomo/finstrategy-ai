@@ -21,7 +21,7 @@ function cleanTicker(ticker: string | null | undefined) {
 function getConfiguredProvider(): OptionsDataProvider | "invalid" {
   const provider = (process.env.OPTIONS_DATA_PROVIDER || "").trim().toLowerCase();
   if (!provider) return "none";
-  if (provider === "fmp" || provider === "polygon") return provider;
+  if (provider === "fmp" || provider === "polygon" || provider === "marketdata") return provider;
   return "invalid";
 }
 
@@ -55,13 +55,13 @@ function getField(record: Record<string, unknown>, names: string[]): unknown {
   return undefined;
 }
 
-async function fetchJson(url: string): Promise<unknown> {
+async function fetchJson(url: string, headers?: HeadersInit): Promise<unknown> {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
     const response = await fetch(url, {
       signal: controller.signal,
-      headers: { Accept: "application/json" },
+      headers: { Accept: "application/json", ...headers },
       next: { revalidate: 45 }
     });
     if (!response.ok) {
@@ -246,6 +246,118 @@ function normalizeFmpContract(record: Record<string, unknown>): OptionContract |
   });
 }
 
+function getArrayField(payload: Record<string, unknown>, name: string): unknown[] {
+  const value = payload[name];
+  return Array.isArray(value) ? value : [];
+}
+
+function valueAt(payload: Record<string, unknown>, name: string, index: number): unknown {
+  return getArrayField(payload, name)[index];
+}
+
+function normalizeMarketDataDate(value: unknown): string {
+  const numeric = toNumber(value);
+  if (numeric !== null) {
+    const ms = numeric > 10_000_000_000 ? numeric : numeric * 1000;
+    const date = new Date(ms);
+    if (Number.isFinite(date.getTime())) return date.toISOString().slice(0, 10);
+  }
+  return String(value || "").slice(0, 10);
+}
+
+function normalizeMarketDataSymbol(value: unknown, ticker: string, type: "CALL" | "PUT", expiry: string, strike: number | null) {
+  const raw = String(value || "");
+  if (raw) return raw;
+  return `${ticker}-${expiry}-${type}-${strike ?? "NA"}`;
+}
+
+async function fetchMarketDataOptionChain(ticker: string, token: string): Promise<OptionChainResponse> {
+  const payload = await fetchJson("https://api.marketdata.app/v1/options/chain/" + encodeURIComponent(ticker) + "/", {
+    Authorization: `Bearer ${token}`
+  });
+  const root = isRecord(payload) ? payload : {};
+  const status = String(root.s || root.status || "").toLowerCase();
+  if (status === "no_data" || status === "error") {
+    return {
+      ticker,
+      underlyingPrice: null,
+      provider: "marketdata",
+      updatedAt: nowIso(),
+      contracts: [],
+      message: "MarketData.app no devolvio contratos para este ticker.",
+      warnings: ["Verifica que tu token tenga acceso a Options Chains y que el ticker tenga opciones disponibles."]
+    };
+  }
+
+  const sides = getArrayField(root, "side");
+  const length = Math.max(
+    sides.length,
+    getArrayField(root, "strike").length,
+    getArrayField(root, "optionSymbol").length,
+    getArrayField(root, "symbol").length
+  );
+
+  const contracts: OptionContract[] = [];
+  for (let index = 0; index < length; index += 1) {
+    const side = String(valueAt(root, "side", index) || "").toUpperCase();
+    const type = side.includes("PUT") ? "PUT" : side.includes("CALL") ? "CALL" : null;
+    if (!type) continue;
+    const expiry = normalizeMarketDataDate(valueAt(root, "expiration", index) ?? valueAt(root, "expiry", index));
+    const strike = toNumber(valueAt(root, "strike", index));
+    const bid = toNumber(valueAt(root, "bid", index));
+    const ask = toNumber(valueAt(root, "ask", index));
+    const mid = toNumber(valueAt(root, "mid", index)) ?? (bid !== null && ask !== null ? (bid + ask) / 2 : null);
+    const symbol = normalizeMarketDataSymbol(valueAt(root, "optionSymbol", index) ?? valueAt(root, "symbol", index), ticker, type, expiry, strike);
+    const contract = buildContract({
+      symbol,
+      type,
+      expiry,
+      strike,
+      bid,
+      ask,
+      last: toNumber(valueAt(root, "last", index)),
+      iv: normalizeIv(valueAt(root, "iv", index)),
+      delta: toNumber(valueAt(root, "delta", index)),
+      gamma: toNumber(valueAt(root, "gamma", index)),
+      theta: toNumber(valueAt(root, "theta", index)),
+      vega: toNumber(valueAt(root, "vega", index)),
+      volume: toNumber(valueAt(root, "volume", index)),
+      openInterest: toNumber(valueAt(root, "openInterest", index))
+    });
+    if (contract) {
+      contracts.push({
+        ...contract,
+        mid,
+        spreadPct: calculateSpreadPct(bid, ask, mid),
+        qualityScore: calculateQualityScore({ ...contract, mid, spreadPct: calculateSpreadPct(bid, ask, mid) })
+      });
+    }
+  }
+
+  const underlyingPrices = getArrayField(root, "underlyingPrice").map(toNumber).filter((value): value is number => value !== null);
+  const updatedValues = getArrayField(root, "updated");
+  const updated = updatedValues.length ? normalizeMarketDataUpdated(updatedValues[0]) : nowIso();
+
+  return {
+    ticker,
+    underlyingPrice: underlyingPrices[0] ?? null,
+    provider: "marketdata",
+    updatedAt: updated,
+    contracts: contracts.sort((a, b) => b.qualityScore - a.qualityScore)
+  };
+}
+
+function normalizeMarketDataUpdated(value: unknown): string {
+  const numeric = toNumber(value);
+  if (numeric !== null) {
+    const ms = numeric > 10_000_000_000 ? numeric : numeric * 1000;
+    const date = new Date(ms);
+    if (Number.isFinite(date.getTime())) return date.toISOString();
+  }
+  const date = new Date(String(value || ""));
+  return Number.isFinite(date.getTime()) ? date.toISOString() : nowIso();
+}
+
 async function fetchFmpOptionChain(ticker: string, apiKey: string): Promise<OptionChainResponse> {
   const urls = [
     `https://financialmodelingprep.com/stable/options-chain?symbol=${ticker}&apikey=${apiKey}`,
@@ -428,25 +540,37 @@ export async function getOptionsChain(tickerInput: string): Promise<OptionChainR
   if (cached && cached.expiresAt > Date.now()) return cached.data;
 
   if (provider === "invalid") {
-    return errorResponse(ticker, "none", "Proveedor de datos de opciones invalido. Usa OPTIONS_DATA_PROVIDER=fmp o OPTIONS_DATA_PROVIDER=polygon.", "INVALID_PROVIDER");
+    return errorResponse(ticker, "none", "Proveedor de datos de opciones invalido. Usa OPTIONS_DATA_PROVIDER=fmp, polygon o marketdata.", "INVALID_PROVIDER");
   }
 
   if (provider === "none") {
     return errorResponse(ticker, "none", "No hay proveedor de datos de opciones configurado. Configura OPTIONS_DATA_PROVIDER y la API key correspondiente.", "NO_PROVIDER");
   }
 
-  const apiKey = provider === "fmp" ? process.env.FMP_API_KEY : process.env.POLYGON_API_KEY;
+  const apiKey =
+    provider === "fmp"
+      ? process.env.FMP_API_KEY
+      : provider === "polygon"
+        ? process.env.POLYGON_API_KEY
+        : process.env.MARKETDATA_TOKEN || process.env.MARKETDATA_API_KEY;
   if (!apiKey) {
     return errorResponse(
       ticker,
       provider,
-      `No hay API key configurada para ${provider.toUpperCase()}. Configura ${provider === "fmp" ? "FMP_API_KEY" : "POLYGON_API_KEY"} en Vercel.`,
+      `No hay API key configurada para ${provider.toUpperCase()}. Configura ${
+        provider === "fmp" ? "FMP_API_KEY" : provider === "polygon" ? "POLYGON_API_KEY" : "MARKETDATA_TOKEN"
+      } en Vercel.`,
       "NO_PROVIDER"
     );
   }
 
   try {
-    const data = provider === "fmp" ? await fetchFmpOptionChain(ticker, apiKey) : await fetchPolygonOptionChain(ticker, apiKey);
+    const data =
+      provider === "fmp"
+        ? await fetchFmpOptionChain(ticker, apiKey)
+        : provider === "polygon"
+          ? await fetchPolygonOptionChain(ticker, apiKey)
+          : await fetchMarketDataOptionChain(ticker, apiKey);
     cache.set(cacheKey, { data, expiresAt: Date.now() + OPTIONS_CACHE_MS });
     return data;
   } catch (error) {
