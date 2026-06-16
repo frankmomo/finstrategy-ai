@@ -124,6 +124,11 @@ export function OptionsChainTable({
             Proveedor: {chain.provider === "none" ? "sin configurar" : chain.provider.toUpperCase()} | Subyacente:{" "}
             {formatCurrency(chain.underlyingPrice)} | Actualizado: {new Date(chain.updatedAt).toLocaleString("es-MX")}
           </p>
+          {chain.warnings?.map((warning) => (
+            <p key={warning} className="mt-2 border border-terminal-amber/50 bg-yellow-950/20 p-2 text-xs text-terminal-amber">
+              {warning}
+            </p>
+          ))}
         </div>
         <p className="max-w-xl text-xs text-terminal-muted">
           Score tecnico basado en liquidez, spread, delta, DTE e IV. No es recomendacion financiera.

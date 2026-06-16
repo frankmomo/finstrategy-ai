@@ -7,6 +7,7 @@ type CacheEntry = {
 
 const OPTIONS_CACHE_MS = 45_000;
 const REQUEST_TIMEOUT_MS = 8_000;
+const POLYGON_QUOTE_ENRICH_LIMIT = 40;
 const cache = new Map<string, CacheEntry>();
 
 function nowIso() {
@@ -67,6 +68,22 @@ async function fetchJson(url: string): Promise<unknown> {
       throw new Error(`Provider HTTP ${response.status}`);
     }
     return response.json() as Promise<unknown>;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetchJsonWithStatus(url: string): Promise<{ status: number; payload: unknown }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(url, {
+      signal: controller.signal,
+      headers: { Accept: "application/json" },
+      next: { revalidate: 30 }
+    });
+    const payload = await response.json().catch(() => null);
+    return { status: response.status, payload };
   } finally {
     clearTimeout(timeout);
   }
@@ -307,6 +324,7 @@ async function fetchPolygonOptionChain(ticker: string, apiKey: string): Promise<
     .map(normalizePolygonContract)
     .filter((contract): contract is OptionContract => Boolean(contract))
     .sort((a, b) => b.qualityScore - a.qualityScore);
+  const quoteEnrichment = await enrichPolygonQuotes(contracts, apiKey);
   const firstResult = results.find(isRecord);
   const underlying = isRecord(root.underlying_asset)
     ? root.underlying_asset
@@ -319,7 +337,77 @@ async function fetchPolygonOptionChain(ticker: string, apiKey: string): Promise<
     underlyingPrice: underlyingPrice ?? toNumber(getField(underlying, ["price"])),
     provider: "polygon",
     updatedAt: nowIso(),
-    contracts
+    contracts: quoteEnrichment.contracts,
+    warnings: quoteEnrichment.warning ? [quoteEnrichment.warning] : undefined
+  };
+}
+
+async function enrichPolygonQuotes(
+  contracts: OptionContract[],
+  apiKey: string
+): Promise<{ contracts: OptionContract[]; warning?: string }> {
+  if (!contracts.length) return { contracts };
+
+  const candidates = contracts
+    .filter((contract) => contract.bid === null || contract.ask === null)
+    .slice(0, POLYGON_QUOTE_ENRICH_LIMIT);
+  if (!candidates.length) return { contracts };
+
+  const quoteBySymbol = new Map<string, Partial<OptionContract>>();
+  let unauthorized = false;
+
+  for (const contract of candidates) {
+    if (unauthorized) break;
+    const url = `https://api.polygon.io/v3/quotes/${encodeURIComponent(contract.symbol)}?limit=1&order=desc&sort=sip_timestamp&apiKey=${apiKey}`;
+    try {
+      const { status, payload } = await fetchJsonWithStatus(url);
+      if (status === 401 || status === 403) {
+        unauthorized = true;
+        break;
+      }
+      if (status < 200 || status >= 300 || !isRecord(payload)) continue;
+      const results = Array.isArray(payload.results) ? payload.results : [];
+      const latestQuote = results.find(isRecord);
+      if (!latestQuote) continue;
+      const bid = toNumber(getField(latestQuote, ["bid_price", "bid", "bp"]));
+      const ask = toNumber(getField(latestQuote, ["ask_price", "ask", "ap"]));
+      const mid = bid !== null && ask !== null ? (bid + ask) / 2 : null;
+      quoteBySymbol.set(contract.symbol, {
+        bid,
+        ask,
+        mid,
+        spreadPct: calculateSpreadPct(bid, ask, mid)
+      });
+    } catch {
+      continue;
+    }
+  }
+
+  const enrichedContracts = contracts
+    .map((contract) => {
+      const quote = quoteBySymbol.get(contract.symbol);
+      if (!quote) return contract;
+      const merged = {
+        ...contract,
+        bid: quote.bid ?? contract.bid,
+        ask: quote.ask ?? contract.ask,
+        mid: quote.mid ?? contract.mid,
+        spreadPct: quote.spreadPct ?? contract.spreadPct
+      };
+      return {
+        ...merged,
+        qualityScore: calculateQualityScore(merged)
+      };
+    })
+    .sort((a, b) => b.qualityScore - a.qualityScore);
+
+  return {
+    contracts: enrichedContracts,
+    warning: unauthorized
+      ? "Polygon no autorizo datos bid/ask de opciones para esta API key. Activa Options Quotes/Options Advanced o conecta otro proveedor de quotes."
+      : quoteBySymbol.size === 0
+        ? "No se recibieron bid/ask recientes para los contratos consultados. La tabla usa ultimo precio cuando esta disponible."
+        : undefined
   };
 }
 

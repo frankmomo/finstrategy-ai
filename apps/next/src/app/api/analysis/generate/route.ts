@@ -129,7 +129,7 @@ async function buildAnalysisContext(input: AnalysisInput): Promise<AnalysisConte
   );
   const relevantStrategies = strategies.filter((strategy) => strategy.tickers.includes(ticker)).slice(0, 8);
   const relevantAlerts = alerts.filter((alert) => alert.ticker === ticker).slice(0, 12);
-  const optionWarnings = optionChain.message ? [optionChain.message] : [];
+  const optionWarnings = [optionChain.message, ...(optionChain.warnings || [])].filter((warning): warning is string => Boolean(warning));
   const warnings = [
     ...Object.values(marketByTimeframe)
       .map((summary) => summary.warning)

@@ -52,6 +52,7 @@ export type OptionChainResponse = {
   updatedAt: string;
   contracts: OptionContract[];
   message?: string;
+  warnings?: string[];
   errorCode?: "NO_PROVIDER" | "PROVIDER_ERROR" | "INVALID_PROVIDER";
 };
 
