@@ -64,10 +64,14 @@ async function fetchJson(url: string, headers?: HeadersInit): Promise<unknown> {
       headers: { Accept: "application/json", ...headers },
       next: { revalidate: 45 }
     });
+    const payload = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(`Provider HTTP ${response.status}`);
+      const providerMessage = isRecord(payload)
+        ? String(payload.errmsg || payload.message || payload.error || payload.s || "")
+        : "";
+      throw new Error(`Provider HTTP ${response.status}${providerMessage ? `: ${providerMessage}` : ""}`);
     }
-    return response.json() as Promise<unknown>;
+    return payload;
   } finally {
     clearTimeout(timeout);
   }
@@ -278,13 +282,14 @@ async function fetchMarketDataOptionChain(ticker: string, token: string): Promis
   const root = isRecord(payload) ? payload : {};
   const status = String(root.s || root.status || "").toLowerCase();
   if (status === "no_data" || status === "error") {
+    const providerMessage = String(root.errmsg || root.message || "MarketData.app no devolvio contratos para este ticker.");
     return {
       ticker,
       underlyingPrice: null,
       provider: "marketdata",
       updatedAt: nowIso(),
       contracts: [],
-      message: "MarketData.app no devolvio contratos para este ticker.",
+      message: providerMessage,
       warnings: ["Verifica que tu token tenga acceso a Options Chains y que el ticker tenga opciones disponibles."]
     };
   }
@@ -575,6 +580,12 @@ export async function getOptionsChain(tickerInput: string): Promise<OptionChainR
     return data;
   } catch (error) {
     console.error("Options provider failed", error);
-    return errorResponse(ticker, provider, "Error al cargar contratos. Revisa la API key o el proveedor.", "PROVIDER_ERROR");
+    const providerDetail = error instanceof Error ? error.message : "";
+    return errorResponse(
+      ticker,
+      provider,
+      providerDetail ? `Error al cargar contratos: ${providerDetail}` : "Error al cargar contratos. Revisa la API key o el proveedor.",
+      "PROVIDER_ERROR"
+    );
   }
 }
