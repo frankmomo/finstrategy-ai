@@ -581,6 +581,20 @@ export async function getOptionsChain(tickerInput: string): Promise<OptionChainR
   } catch (error) {
     console.error("Options provider failed", error);
     const providerDetail = error instanceof Error ? error.message : "";
+    if (provider === "marketdata" && process.env.POLYGON_API_KEY) {
+      try {
+        const fallback = await fetchPolygonOptionChain(ticker, process.env.POLYGON_API_KEY);
+        return {
+          ...fallback,
+          warnings: [
+            `MarketData.app fallo y se uso Polygon como respaldo. Detalle: ${providerDetail || "proveedor no disponible"}`,
+            ...(fallback.warnings || [])
+          ]
+        };
+      } catch (fallbackError) {
+        console.error("Polygon fallback failed", fallbackError);
+      }
+    }
     return errorResponse(
       ticker,
       provider,
